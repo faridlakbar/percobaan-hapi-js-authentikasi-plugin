@@ -17,23 +17,19 @@ const client = createClient({
   authToken: process.env.KEYAUTH,
 });
 
-const users = {
-  akbar: {
-    username: "akbar",
-    password: "$2b$10$bWb8TwhFMMQG6HMnbtDwzeqFOZqGZqp6Ge3sEjsx7wbZro2F6m3De",
-    name: "akbar",
-    id: 1,
-  },
-};
-
 const validate = async (request, username, password) => {
-  const user = users[username];
-  if (!user) {
+  const user = await client.execute({
+    sql: `
+    SELECT * FROM users WHERE username = ?
+  `,
+    args: [username],
+  });
+  if (!user.rows.length) {
     throw Boom.unauthorized("Authentiction filed");
   }
 
-  const isValid = await bcrypt.compare(password, user.password);
-  const credentials = { id: user.id, name: user.name };
+  const isValid = await bcrypt.compare(password, user.rows[0].password);
+  const credentials = { id: user.rows[0].id, name: user.rows[0].name };
 
   return { credentials, isValid };
 };
@@ -60,7 +56,7 @@ async function init() {
         auth: "simple",
       },
       handler: (request, h) => {
-        return "hello world";
+        return "hello world!";
       },
     },
     {
@@ -86,10 +82,19 @@ async function init() {
       path: "/register",
       handler: async (request, h) => {
         try {
-          const { password } = request.params;
+          const result = request.payload;
           const salt = await bcrypt.genSalt(10);
-          const generatePassword = await bcrypt.hash(password, salt);
-          return generatePassword;
+          const hashPassword = await bcrypt.hash(result.password, salt);
+          await client.execute({
+            sql: `INSERT INTO users (username, name, password) VALUES (?,?,?)`,
+            args: [result.username, result.name, hashPassword],
+          });
+          const data = await client.execute({
+            sql: `SELECT * FROM users WHERE username=?`,
+            args: [result.username],
+          });
+          if (!data.rows.length) throw new Error("data not fount");
+          return h.response({ result: "berhasil" }).code(200);
         } catch (error) {
           throw Boom.internal("Internal Server Error");
         }
