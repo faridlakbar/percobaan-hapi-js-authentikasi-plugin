@@ -1,0 +1,14 @@
+{
+  "name": "percobaan-hapi-js-authentikasi-plugin",
+  "version": "1.0.0",
+  "description": "trying authentication plugin from hapi js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@hapi/hapi": "^21.3.3"
+  }
+}
