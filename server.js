@@ -7,6 +7,16 @@ import { createClient } from "@libsql/client";
 import dotenv from "dotenv";
 dotenv.config();
 
+// get path and dirname
+import { fileURLToPath } from "url";
+import path from "path";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const client = createClient({
+  url: "libsql://simpledatabase-faridlakbar.turso.io",
+  authToken: process.env.KEYAUTH,
+});
+
 const users = {
   akbar: {
     username: "akbar",
@@ -32,6 +42,9 @@ async function init() {
   const server = new Hapi.server({
     host: "localhost",
     port: 9000,
+    routes: {
+      files: { relativeTo: path.join(__dirname, "public") },
+    },
   });
 
   await server.register(basic);
@@ -52,7 +65,25 @@ async function init() {
     },
     {
       method: "GET",
-      path: "/generate/{password}",
+      path: "/register/{param*}",
+      handler: {
+        directory: {
+          path: "./register",
+          redirectToSlash: true,
+          index: ["register.html"],
+        },
+      },
+    },
+    {
+      method: "GET",
+      path: "/register/",
+      handler: (request, h) => {
+        return h.redirect("/register");
+      },
+    },
+    {
+      method: "POST",
+      path: "/register",
       handler: async (request, h) => {
         try {
           const { password } = request.params;
@@ -67,6 +98,9 @@ async function init() {
     {
       method: "GET",
       path: "/basic",
+      options: {
+        auth: "simple",
+      },
       handler: async (request, h) => {
         try {
           return h.file("./package.json");
